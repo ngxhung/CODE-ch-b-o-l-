@@ -1,0 +1,18 @@
+Show3ema = input.bool(false, 'Sonic R ON/OFF              ', inline = 'overlayLine1', group = 'ON/OFF')
+EMA = input.int(defval=89, title='EMA 89',group = " Sonic R")
+HiLoLen = input.int(34, minval=2, title='EMA 34',group = " Sonic R")
+Ema200 = input.int(200, minval=2, title='EMA 200',group = " Sonic R")
+pacC = ta.ema(close, HiLoLen)
+pacL = ta.ema(low, HiLoLen)
+pacH = ta.ema(high, HiLoLen)
+DODGERBLUE = color.rgb(0, 0, 0)
+// Plot the Price Action Channel (PAC) base on EMA high,low and close
+L = plot(Show3ema?pacL:na, color=DODGERBLUE, linewidth=1, title='High PAC EMA', transp=50)
+H = plot(Show3ema?pacH:na, color=DODGERBLUE, linewidth=1, title='Low PAC EMA', transp=50)
+C = plot(Show3ema?pacC:na, color=DODGERBLUE, linewidth=2, title='Close PAC EMA', transp=0)
+fill(L, H, color=color.new(#5f5f5f, 92), title='Fill HiLo PAC')
+
+signalMA = ta.ema(close, 89)
+ema200 = ta.ema(close, Ema200)
+plot(Show3ema?ema200:na, title='EMA 200', color=color.new(#000000, 38), linewidth=4, style=plot.style_line)
+plot(Show3ema?signalMA:na, title='EMA Signal', color=color.new(#3f3f3f, 49), linewidth=2, style=plot.style_line)
