@@ -1,0 +1,60 @@
+DB= input.bool(true, "Dash Board",group = "ON/OFF")
+/////////////////////////////////////////////////////////////////////
+EMA34 = input.int(34,'EMA34')
+EMA89 = input.int(89,'EMA89')
+EMA200 = input.int(200,'EMA200')
+TF1 =input.timeframe("15","M15")
+TF2 =input.timeframe("60","H1")
+TF3 =input.timeframe("240","H4")
+RequestSecurityNRP(_tf, _exp, _barmerge) =>
+    request.security(syminfo.tickerid,_tf, _exp[barstate.isrealtime ? 1:0],_barmerge)[barstate.isrealtime? 0:1]
+
+EMA_34 = ta.ema(close,EMA34)
+EMA_34_TF1 = RequestSecurityNRP(TF1,EMA_34,barmerge.gaps_off)
+EMA_34_TF2 = RequestSecurityNRP(TF2,EMA_34,barmerge.gaps_off)
+EMA_34_TF3 = RequestSecurityNRP(TF3,EMA_34,barmerge.gaps_off)
+EMA_89 = ta.ema(close,EMA89)
+EMA_89_TF1 = RequestSecurityNRP(TF1,EMA_89,barmerge.gaps_off)
+EMA_89_TF2 = RequestSecurityNRP(TF2,EMA_89,barmerge.gaps_off)
+EMA_89_TF3 = RequestSecurityNRP(TF3,EMA_89,barmerge.gaps_off)
+EMA_200 = ta.ema(close,EMA200)
+EMA_200_TF1 = RequestSecurityNRP(TF1,EMA_200,barmerge.gaps_off)
+EMA_200_TF2 = RequestSecurityNRP(TF2,EMA_200,barmerge.gaps_off)
+EMA_200_TF3 = RequestSecurityNRP(TF3,EMA_200,barmerge.gaps_off)
+trendm15_1_a= close >EMA_34_TF1? "▲":"▼" 
+trendm15_2_a= EMA_34_TF1 >EMA_89_TF1? "▲":"▼"
+trendm15_3_a= EMA_89_TF1 >EMA_200_TF1? "▲":"▼" 
+trendh1_1_a= close >EMA_34_TF2? "▲":"▼"
+trendh1_2_a= EMA_34_TF2 >EMA_89_TF2? "▲":"▼"
+trendh1_3_a= EMA_89_TF2 >EMA_200_TF2? "▲":"▼"
+trendh4_1_a= close >EMA_34_TF3? "▲":"▼" 
+trendh4_2_a= EMA_34_TF3 >EMA_89_TF3? "▲":"▼" 
+trendh4_3_a= EMA_89_TF3 >EMA_200_TF3? "▲":"▼"
+trendm15_1= close >EMA_34_TF1? color.new(#cccccc, 0): color.new(#424242, 0) 
+trendm15_2= EMA_34_TF1 >EMA_89_TF1? color.new(#cccccc, 0): color.new(#424242, 0) 
+trendm15_3= EMA_89_TF1 >EMA_200_TF1? color.new(#cccccc, 0): color.new(#424242, 0) 
+trendh1_1= close >EMA_34_TF2? color.new(#cccccc, 0): color.new(#424242, 0) 
+trendh1_2= EMA_34_TF2 >EMA_89_TF2? color.new(#cccccc, 0): color.new(#424242, 0) 
+trendh1_3= EMA_89_TF2 >EMA_200_TF2? color.new(#cccccc, 0): color.new(#424242, 0) 
+trendh4_1= close >EMA_34_TF3? color.new(#cccccc, 0): color.new(#424242, 0) 
+trendh4_2= EMA_34_TF3 >EMA_89_TF3? color.new(#cccccc, 0): color.new(#424242, 0) 
+trendh4_3= EMA_89_TF3 >EMA_200_TF3? color.new(#cccccc, 0): color.new(#424242, 0) 
+//bảng
+if DB
+    var myTable = table.new(position = position.bottom_right, columns = 4, rows = 4, frame_color = color.rgb(54, 58, 69, 0), frame_width = 1, border_color = color.rgb(54, 58, 69, 100), border_width = 1)
+    table.cell(myTable, 0, 1, "M15", bgcolor=color.rgb(50,50,50,50))
+    table.cell(myTable, 0, 2, "H1", bgcolor=color.rgb(50,50,50,50))
+    table.cell(myTable, 0, 3, "H4", bgcolor=color.rgb(50,50,50,50))
+    table.cell(myTable, 0, 0, "TF", bgcolor=color.rgb(50,50,50,50))
+    table.cell(myTable, 1, 0, "Pr/34", bgcolor=color.rgb(50,50,50,50))
+    table.cell(myTable, 2, 0, "34/89", bgcolor=color.rgb(50,50,50,50))
+    table.cell(myTable, 3, 0, "89/200", bgcolor=color.rgb(50,50,50,50))
+    table.cell(myTable, 1, 1,trendm15_1_a, bgcolor=trendm15_1)
+    table.cell(myTable, 2, 1,trendm15_2_a, bgcolor=trendm15_2)
+    table.cell(myTable, 3, 1,trendm15_3_a, bgcolor=trendm15_3)
+    table.cell(myTable, 1, 2,trendh1_1_a, bgcolor=trendh1_1)
+    table.cell(myTable, 2, 2,trendh1_2_a, bgcolor=trendh1_2)
+    table.cell(myTable, 3, 2,trendh1_3_a, bgcolor=trendh1_3)
+    table.cell(myTable, 1, 3,trendh4_1_a, bgcolor=trendh4_1)
+    table.cell(myTable, 2, 3,trendh4_2_a, bgcolor=trendh4_2)
+    table.cell(myTable, 3, 3,trendh4_3_a, bgcolor=trendh4_3)
