@@ -1,0 +1,268 @@
+
+//////////////////////////// HTF //////////////////////////////////////////
+
+HTF = input.bool(false, 'HTF Candles ON/OFF', inline = 'overlayLine1', group = 'ON/OFF')
+var tf = input.timeframe("1440", "Timeframe", inline="tf", group="Settings")
+var tf_auto = input.bool(false, "Set Automatically", inline="tf", group = "Settings")
+var tf_2lvs = input.bool(false, "Two Levels", inline="tf", group = "Settings")
+var num = input.int(1, "Number of HTF Candles", minval=1, group="Settings")
+var offset = input.int(10, "Offset", group="Settings")
+var size = input.string("Medium", "Size", options = ["Small", "Medium", "Large"], group = "Settings")
+var margin = input.int(1, "Margin", minval=1, group="Settings")
+var htf_data_always = input.bool(false, "Always use HTF data to generate candles", group = "Settings")
+var htf_data_weekly = input.bool(true, "Use HTF data to generate candles on Weekly timeframe", group = "Settings")
+var up_col = input.color(color.new(#06d85e, 100), "Body", inline="Candles", group="Up Candles")
+var up_col_wick = input.color(color.black, "Wick", inline="Candles", group="Up Candles")
+var up_col_border = input.color(color.black, "Border", inline="Candles", group="Up Candles")
+var down_col = input.color(color.new(#1b1b1b, 0), "Body", inline="Candles", group="Down Candles")
+var down_col_wick = input.color(color.black, "Wick", inline="Candles", group="Down Candles")
+var down_col_border = input.color(color.black, "Border", inline="Candles", group="Down Candles")
+var o_col = input.color(color.new(color.black,10), "", inline="o", group = "Projections")
+var o_style = input.string("Dotted", "", options = ["Solid", "Dotted", "Dashed"], inline = "o", group = "Projections")
+var o_width = input.int(1, "Width", minval=1, inline="o", group = "Projections")
+var o_enabled = input.bool(true, "Open", inline="o", group = "Projections")
+var hl_col = input.color(color.new(color.black,10), "", inline = "hl", group = "Projections")
+var hl_style = input.string("Dotted", "", options = ["Solid", "Dotted", "Dashed"], inline = "hl", group = "Projections")
+var hl_width = input.int(1, "Width",minval=1, inline="hl", group = "Projections")
+var hl_enabled = input.bool(true, "High/Low",inline="hl", group = "Projections")
+var ohlc_col = input.color(color.new(color.black,10), "", inline = "ohlc", group = "Projections")
+var ohlc_size = input.string("Normal", "", options = ["Auto", "Tiny", "Small", "Normal", "Large", "Huge"], inline = "ohlc", group = "Projections")
+var ohlc_enabled = input.bool(true, "OHLC Prices",inline="ohlc", group = "Projections")
+
+type Candle
+    box body
+    line upperWick
+    line lowerWick
+    line o
+    line h
+    line l
+    label lableO
+    label lableH
+    label lableL
+    label lableC
+
+getAutoTimeframe(s, m5, m15, m60, m240, m, d, w, q, y) =>
+    timeframe.isseconds ? s :
+     timeframe.isminutes ? 
+      timeframe.multiplier < 5 ? m5 : 
+      timeframe.multiplier < 15 ? m15 : 
+      timeframe.multiplier < 60 ? m60 :
+      timeframe.multiplier < 240 ? m240 : m :
+     timeframe.isdaily ? d :
+     timeframe.isweekly ? w :
+     timeframe.ismonthly and timeframe.multiplier < 6 ? q : y
+     
+     
+determineAutoTimeframe() =>
+    if tf_2lvs
+        getAutoTimeframe('5', '15', '60', '240', '1D', '1W', '1M', '3M', '12M', '12M')
+    else
+        getAutoTimeframe('1', '5', '15', '60', '240', '1D', '1W', '1M', '3M', '12M')
+
+getSizeMultiplier() =>
+    result = switch size
+        "Small" => 1
+        "Medium" => 2
+        "Large" => 3
+    result
+
+getLineStyle(style) =>
+    result = switch style
+        "Solid" => line.style_solid
+        "Dotted" => line.style_dotted
+        "Dashed" => line.style_dashed
+    result
+
+getLableSize() =>
+    result = switch ohlc_size
+        "Auto" => size.auto
+        "Tiny" => size.tiny
+        "Small" => size.small
+        "Normal" => size.normal
+        "Large" => size.large
+        "Huge" => size.huge
+    result
+
+var maxIndex = num - 1
+var curr_tf = tf_auto ? determineAutoTimeframe() : tf
+var useHtfData = (timeframe.isweekly and htf_data_weekly) or htf_data_always
+var sizeMultiplier = getSizeMultiplier()
+newCandle = ta.change(time(curr_tf)) != 0
+
+ohlc() =>
+    [htf_o, htf_h, htf_l, htf_c] = request.security(syminfo.tickerid, curr_tf, [open, high, low, close], lookahead=barmerge.lookahead_on)
+      
+    var o  = 0.
+    var h  = 0.
+    var l  = 0.
+    c  = close
+
+    if newCandle
+        o := open
+        h := high
+        l := low
+    else
+        h  := math.max(high, h)
+        l  := math.min(low , l)
+    
+    [o, h, l, c, htf_o, htf_h, htf_l, htf_c]
+
+getCandlePostion(l_pos) =>
+    m_pos = l_pos + sizeMultiplier
+    r_pos = l_pos + (sizeMultiplier * 2)
+    [m_pos, r_pos]
+
+createLabel(r_pos, s) =>
+    label.new(r_pos, s, str.tostring(s, format.mintick), style = label.style_label_left, color = color.new(color.black,100), textcolor = ohlc_col, size =  getLableSize())
+
+createLabels(Candle candle, o, h, l, c, l_pos) =>
+    if ohlc_enabled    
+        [m_pos, r_pos] = getCandlePostion(l_pos)
+        candle.lableO := createLabel(r_pos, o)
+        candle.lableH := createLabel(r_pos, h)
+        candle.lableL := createLabel(r_pos, l)
+        candle.lableC := createLabel(r_pos, c)
+
+moveLable(label la, r_pos, s) =>
+    la.set_text(str.tostring(s, format.mintick))
+    la.set_xy(r_pos, s)
+
+moveLables(Candle candle, l_pos, o, h, l, c) =>
+    [m_pos, r_pos] = getCandlePostion(l_pos)
+    moveLable(candle.lableO, r_pos, o)
+    moveLable(candle.lableH, r_pos, h)
+    moveLable(candle.lableL, r_pos, l)
+    moveLable(candle.lableC, r_pos, c)
+
+deleteLabels(Candle candle) =>
+    candle.lableO.delete()
+    candle.lableH.delete()
+    candle.lableL.delete()
+    candle.lableC.delete()
+
+createProjections(Candle candle, o, h, l, curr_o, curr_h, curr_l, htf_o, htf_h, htf_l, l_pos) =>
+    [m_pos, r_pos] = getCandlePostion(l_pos)
+    b_o = bar_index
+    b_h = bar_index
+    b_l = bar_index
+    o_o = o
+    o_h = h
+    o_l = l
+    if useHtfData
+        if htf_o != o
+            b_o := b_o - 1
+            o_o := curr_o
+        if htf_h != h
+            b_h := b_h - 1
+            o_h := curr_h
+        if htf_l != l
+            b_l := b_l - 1
+            o_l := curr_l
+
+    if o_enabled
+        candle.o := line.new(b_o, o_o, m_pos, o_o, style = getLineStyle(o_style), color = o_col, width = o_width)
+    if hl_enabled 
+        candle.h := line.new(b_h, o_h, m_pos, o_h, style = getLineStyle(hl_style), color = hl_col, width = hl_width)
+        candle.l := line.new(b_l, o_l, m_pos, o_l, style = getLineStyle(hl_style), color = hl_col, width = hl_width)
+
+moveProjections(Candle candle, l_pos, o, h, l, curr_o, curr_h, curr_l) =>
+    [m_pos, r_pos] = getCandlePostion(l_pos)
+    candle.o.set_y1(curr_o)
+    candle.o.set_xy2(m_pos, curr_o)
+    old_h = candle.h.get_y1()
+    old_l = candle.l.get_y1()
+
+    if h > old_h or (useHtfData and h[1] < old_h)
+        candle.h.set_x1(bar_index)
+    candle.h.set_y1(curr_h)
+    candle.h.set_xy2(m_pos, curr_h)
+
+    if l < old_l or (useHtfData and l[1] > old_l)
+        candle.l.set_x1(bar_index)
+    candle.l.set_y1(curr_l)
+    candle.l.set_xy2(m_pos, curr_l)
+
+deleteProjections(Candle candle) =>
+    candle.o.delete()
+    candle.h.delete()
+    candle.l.delete()
+
+getCandleProperties(o, h, l, c) =>
+    h_body = math.max(o,c)
+    l_body = math.min(o,c)
+    body_col = o > c ? down_col : up_col
+    wick_col = o > c ? down_col_wick : up_col_wick
+    border_col = o > c ? down_col_border : up_col_border
+    [h_body, l_body, body_col, wick_col, border_col]
+
+createCandle(l_pos, o, h, l, c) =>
+    [m_pos, r_pos] = getCandlePostion(l_pos)
+    [h_body, l_body, body_col, wick_col, border_col] = getCandleProperties(o, h, l, c)
+    candle = Candle.new()
+    candle.body := box.new(l_pos, h_body, r_pos, l_body, border_col, bgcolor = body_col)
+    candle.upperWick := line.new(m_pos, h_body, m_pos, h, color = wick_col)
+    candle.lowerWick := line.new(m_pos, l_body, m_pos, l, color = wick_col)
+    candle
+
+moveCandle(Candle candle, l_pos) =>
+    [m_pos, r_pos] = getCandlePostion(l_pos)
+    candle.body.set_left(l_pos)
+    candle.body.set_right(r_pos)
+    candle.upperWick.set_x1(m_pos)
+    candle.upperWick.set_x2(m_pos)
+    candle.lowerWick.set_x1(m_pos)
+    candle.lowerWick.set_x2(m_pos)
+
+updateCandle(Candle candle, l_pos, o, h, l, c) =>
+    [m_pos, r_pos] = getCandlePostion(l_pos)
+    [h_body, l_body, body_col, wick_col, border_col] = getCandleProperties(o, h, l, c)
+    candle.body.set_bgcolor(body_col)
+    candle.body.set_lefttop(l_pos, h_body)
+    candle.body.set_rightbottom(r_pos, l_body)
+    candle.body.set_border_color(border_col)
+    candle.upperWick.set_color(wick_col)
+    candle.upperWick.set_xy1(m_pos, h_body)
+    candle.upperWick.set_xy2(m_pos, h)
+    candle.lowerWick.set_color(wick_col)
+    candle.lowerWick.set_xy1(m_pos, l_body)
+    candle.lowerWick.set_xy2(m_pos, l)
+
+deleteCandle(Candle candle) =>
+    candle.body.delete()
+    candle.upperWick.delete()
+    candle.lowerWick.delete()
+    deleteLabels(candle)
+    deleteProjections(candle)
+
+var candles = array.new<Candle>(num, Candle.new())
+[o,h,l,c, htf_o, htf_h, htf_l, htf_c] = ohlc()
+curr_o = o
+curr_h = h
+curr_l = l
+curr_c = c
+
+if HTF?useHtfData:na
+    curr_o := htf_o
+    curr_h := htf_h
+    curr_l := htf_l
+    curr_c := htf_c
+
+if HTF?newCandle:na
+    oldCandle = candles.shift()
+    deleteCandle(oldCandle)
+    pos = bar_index + offset + maxIndex * (3 + sizeMultiplier)
+    candle = createCandle(pos, curr_o, curr_h, curr_l, curr_c)
+    createProjections(candle, o, h, l, curr_o, curr_h, curr_l, htf_o, htf_h, htf_l, pos)
+    createLabels(candle, curr_o, curr_h, curr_l, curr_c, pos)
+    candles.push(candle)
+
+for [i, candle] in candles
+    new_pos = bar_index + offset + i * (margin + (2 * sizeMultiplier))
+    if i < maxIndex
+        moveCandle(candle, new_pos)
+        deleteProjections(candle) 
+        deleteLabels(candle)
+    else
+        updateCandle(candle, new_pos, curr_o, curr_h, curr_l, curr_c)
+        moveProjections(candle, new_pos, o, h, l, curr_o, curr_h, curr_l)
+        moveLables(candle, new_pos, curr_o, curr_h, curr_l, curr_c)
