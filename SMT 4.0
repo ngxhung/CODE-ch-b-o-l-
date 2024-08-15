@@ -1,0 +1,73 @@
+ShowSmartTrail4 = input.bool(true, 'Smart Trail4.0', inline = 'overlayLine3', group = 'Smart Trail')
+/////////////////////////////// Smart Trail 4.0 ///////////////
+
+
+
+getBandOffsetSource(srcIn, isUpperBand) =>
+    // Initialize the return to our fail-safe 'close', which is also the default input, then update thru the switch statement
+    ret = close
+    switch srcIn
+        "close" => ret := close
+        "wicks" => ret := isUpperBand ? high : low
+        => ret := close
+    ret
+
+getSmartTrail(float scaledATR) =>
+    //atr = ta.atr(atrPeriod)
+    //scaledATR = atr * atrMultiplier
+    upperATRBand = getBandOffsetSource("close", true) + scaledATR
+    lowerATRBand = getBandOffsetSource("close", false) - scaledATR
+    //
+
+    var b = 0.
+    var pos = 1
+
+
+
+    // Since we can calcualte ATR bands based on either close or wicks, we need to be sure to normalize the true distance
+    // from the close to the "stop band" before we can then apply our take-profit scaler and calculate the TP bands...
+
+
+
+    // OG ATR Band Plotting
+    upper = ta.sma(upperATRBand, 10)
+    lower = ta.sma(lowerATRBand, 10)
+    upper := ta.ema(upper, 5)
+    lower := ta.ema(lower, 5)
+    if pos == 1
+        b := lower
+    if pos == -1
+        b := upper
+
+    if pos == 1 and close < lower
+        pos := -1
+        b := upper
+    if pos == -1 and close > upper
+        pos := 1
+        b := lower
+
+    //plot(upper, title="Upper ATR Band", color=color.rgb(0, 255, 0, 50), linewidth=2)
+    //plot(lower, title="Lower ATR Band", color=color.rgb(255, 0, 0, 50), linewidth=2)
+    b
+
+int smartsens = input(4, "Sensetivity")
+int atrlen = smartsens == 1 ? 3 : smartsens == 2 ? 5 : smartsens == 3 ? 7 : 2
+atrmul = smartsens*0.5
+
+//plot(vola)
+//atrmul := atrmul
+scaleatr = ta.atr(atrlen)*atrmul
+supert = getSmartTrail(scaleatr)
+
+supert2 = 0.00
+atrs = ta.atr(atrlen*5)
+supert2 := if close > supert
+    supert + atrs
+else if close < supert
+    supert - atrs
+
+smb = input.color(#ffffff7c, "Smart Trail", inline = "2")
+smre = input.color(#00000052, "", inline = "2")
+t = plot(ShowSmartTrail4?supert:na, color = close > supert ? smb:smre)
+tt = plot(supert2, color = color.new(color.black, 100))
+fill(t, tt, close > supert?color.new(smb, 80) : color.new(smre, 80))
