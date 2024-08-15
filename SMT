@@ -1,0 +1,149 @@
+ShowSmartTrail = input.bool(false, 'Smart Trail Now TF', group = 'ON/OFF', inline = 'overlayLine3')
+ShowSmartTrailTF1 = input.bool(false, 'SMT TF 1', group = 'ON/OFF', inline = 'overlayLine3')
+ShowSmartTrailTF2 = input.bool(false, 'SMT TF 2', group = 'ON/OFF', inline = 'overlayLine3')
+///////////////////// SMART TRAIL /////////////////
+
+
+trailType = input.string('modified', 'Trailtype', options=['modified', 'unmodified'], group = "👉 SmartTrail Settings")
+ATRPeriod = input(200, 'ATR Period', group = "👉 SmartTrail Settings")
+ATRFactor_default = input.float(8, 'ATR Factor mặc định', group = "👉 SmartTrail Settings" ,tooltip = "Các TF ngoài các khung bên dưới sẽ sử dụng thông số mặc định",minval = 2, maxval = 10, step = 0.5)
+//m5:5.2, 5.4/6.8,m30 6.5/7.9,h1 6.7
+ATRFactor_ON_OF = input.bool(true,"Thiet lap gia tri theo tung TF", group = "👉 SmartTrail Settings")
+ATRFactor_M5 = input.float(6, 'ATR Factor M5', group = "👉 SmartTrail Settings" ,tooltip = "Thông số mặc định phù hợp đánh vàng",minval = 2, maxval = 10, step = 0.5)
+ATRFactor_M15 = input.float(5.4, 'ATR Factor M15', group = "👉 SmartTrail Settings" ,tooltip = "Thông số mặc định phù hợp đánh vàng",minval = 2, maxval = 10, step = 0.5)
+ATRFactor_M30 = input.float(8, 'ATR Factor M30', group = "👉 SmartTrail Settings" ,tooltip = "Thông số mặc định phù hợp đánh vàng",minval = 2, maxval = 10, step = 0.5)
+ATRFactor_H1 = input.float(5.3, 'ATR Factor H1', group = "👉 SmartTrail Settings" ,tooltip = "Thông số mặc định phù hợp đánh vàng",minval = 2, maxval = 10, step = 0.5)
+ATRFactor_H4 = input.float(7, 'ATR Factor H4', group = "👉 SmartTrail Settings" ,tooltip = "Thông số mặc định phù hợp đánh vàng",minval = 2, maxval = 10, step = 0.5)
+ATRFactor_D1 = input.float(7, 'ATR Factor D1', group = "👉 SmartTrail Settings" ,tooltip = "Thông số mặc định phù hợp đánh vàng",minval = 2, maxval = 10, step = 0.5)
+smtColorfib1_up  = color.rgb(255, 255, 255)
+smtColorfib1_down  = color.rgb(0, 0, 0)
+smtColorfib2  = color.new(#8a8a81, 49)
+smtColorfib3  = color.new(#8a8a81, 49)
+
+
+fib1Level = 61.8 // 71
+fib2Level = 78.6 // 79
+fib3Level = 88.6 //
+
+//box_width = input.float(7, title = 'Supply/Demand Box Width', group = "👉 SUPPLY AND DEMAND", minval = 1, maxval = 10, step = 0.5)
+Smoothing = input(5, 'Smoothing', group = "👉 SmartTrail Settings")
+
+/// set value ATRFactor when TimeFrame change
+getATRFactor(TF) => 
+    ATRFactor = if TF == "5" and ATRFactor_ON_OF
+        ATRFactor_M5
+    else if TF == "15"and ATRFactor_ON_OF
+        ATRFactor_M15
+    else if TF == "30"and ATRFactor_ON_OF
+        ATRFactor_M30    
+    else if TF == "60" and ATRFactor_ON_OF
+        ATRFactor_H1
+    else if TF == "240"and ATRFactor_ON_OF
+        ATRFactor_H4
+    else if TF == "1440"and ATRFactor_ON_OF
+        ATRFactor_D1    
+    else 
+        ATRFactor_default
+    ATRFactor
+
+// drawWithLabel(price) => 
+//     // Khai báo biến cho nhãn
+//     var label_id = label.new(na, na, text="", color=color.rgb(33, 149, 243, 100), style=label.style_label_left, yloc=yloc.price)
+//     // Xóa nhãn nếu không phải là cây nến cuối cùng
+//     if not barstate.islast
+//         label.delete(label_id)
+//     // Tính chỉ số của cây nến cuối cùng
+//     last_candle_index = bar_index - ta.barssince(ta.change(time)) + 1
+//     // Đặt nhãn mới cho đường EMA tại cây nến cuối cùng
+//     if barstate.islast
+//         label_id := label.new(last_candle_index, price, text="EMA(" + str.tostring(price) + ")", color=color.blue, style=label.style_label_left, yloc=yloc.price)
+
+// Function
+Wild_ma(_src, _malength) =>
+    _wild = 0.0
+    _wild := nz(_wild[1]) + (_src - nz(_wild[1])) / _malength
+    _wild
+    
+CalculateSMT_MultiTF(TF, ATRFactorInput) =>
+    norm_o = request.security(ticker.new(syminfo.prefix, syminfo.ticker), TF, open)
+    norm_h = request.security(ticker.new(syminfo.prefix, syminfo.ticker), TF, high)
+    norm_l = request.security(ticker.new(syminfo.prefix, syminfo.ticker), TF, low)
+    norm_c = request.security(ticker.new(syminfo.prefix, syminfo.ticker), TF, close)
+    ATRFactor = ATRFactorInput
+
+    /////////// TRUE RANGE CALCULATIONS /////////////////
+    HiLo = math.min(norm_h - norm_l, 1.5 * nz(ta.sma(norm_h - norm_l, ATRPeriod)))
+    HRef = norm_l <= norm_h[1] ? norm_h - norm_c[1] : norm_h - norm_c[1] - 0.5 * (norm_l - norm_h[1])
+    LRef = norm_h >= norm_l[1] ? norm_c[1] - norm_l : norm_c[1] - norm_l - 0.5 * (norm_l[1] - norm_h)
+    trueRange = trailType == 'modified' ? math.max(HiLo, HRef, LRef) : math.max(norm_h - norm_l, math.abs(norm_h - norm_c[1]), math.abs(norm_l - norm_c[1]))
+
+
+/////////// TRADE LOGIC ////////////////////////
+
+    loss =  ATRFactor* Wild_ma(trueRange, ATRPeriod)
+    
+    Up68 = norm_c - loss
+    Dn68 = norm_c + loss
+
+    TrendUp = Up68
+
+    TrendDown = Dn68
+
+    Trendtrade = 1
+    TrendUp := norm_c[1] > TrendUp[1] ? math.max(Up68, TrendUp[1]) : Up68 
+
+    TrendDown := norm_c[1] < TrendDown[1] ? math.min(Dn68, TrendDown[1]) : Dn68
+
+
+    Trendtrade := norm_c > TrendDown[1] ? 1 : norm_c < TrendUp[1] ? -1 : nz(Trendtrade[1], 1)
+    trail = Trendtrade == 1 ? TrendUp : TrendDown
+        
+    ex = 0.0
+    ex := ta.crossover(Trendtrade, 0) ? norm_h : ta.crossunder(Trendtrade, 0) ? norm_l : Trendtrade == 1 ? math.max(ex[1], norm_h) : Trendtrade == -1 ? math.min(ex[1], norm_l) : ex[1]
+    [ex,trail,Trendtrade]
+
+// calculate and plot
+nowTF = str.tostring(timeframe.period)
+[ex,trail,Trendtrade] = request.security(ticker.new(syminfo.prefix, syminfo.ticker), nowTF, CalculateSMT_MultiTF(nowTF,getATRFactor(nowTF)) ) 
+
+// plot SMT now TF
+
+f2 = ex + (trail - ex) * fib2Level / 100
+f3 = ex + (trail - ex) * fib3Level / 100
+Fib1 = plot(ShowSmartTrail ?(ta.sma(trail, Smoothing)):na, 'S/R - SIGNAL', style=plot.style_line, color=Trendtrade == 1 ? smtColorfib1_up : Trendtrade == -1 ? smtColorfib1_down : na,linewidth = 1,editable = false)
+Fib2 = plot(ShowSmartTrail ?(ta.sma(f2, Smoothing)) :na, 'Ranger B', color=smtColorfib2,display = display.none,editable=false) 
+Fib3 = plot(ShowSmartTrail ?(ta.sma(f3, Smoothing)) :na, 'Ranger C',color=smtColorfib3,editable=false)
+fill(Fib1, Fib3, color = trail > f3 ?  color.new(#303030, 65): color.new(#ffffff, 65),editable=false)
+fill(Fib3, Fib2, color = trail > f3 ?  color.new(#303030, 75): color.new(#ffffff, 75),editable=false)
+
+
+
+
+
+
+////////////////////plot SMT HTF 1/////////////////////////////////
+
+multiTF1 = input.timeframe('30','multi timeframe 1:', group="👉 SmartTrail Settings")
+[exHTF,trailHTF,TrendtradeHTF] = request.security(ticker.new(syminfo.prefix, syminfo.ticker), multiTF1, CalculateSMT_MultiTF(multiTF1,getATRFactor(multiTF1)))
+f2HTF = exHTF + (trailHTF - exHTF) * fib2Level / 100
+f3HTF = exHTF + (trailHTF - exHTF) * fib3Level / 100
+Fib1HTF = plot(ShowSmartTrailTF1 ?(ta.sma(trailHTF, Smoothing)) :na, 'S/R - SIGNAL', style=plot.style_line, color=TrendtradeHTF == 1 ? smtColorfib1_up : TrendtradeHTF == -1 ? smtColorfib1_down : na,linewidth = 1,editable = false)
+Fib2HTF = plot(ShowSmartTrailTF1 ?(ta.sma(f2HTF, Smoothing)):na, 'Ranger B', color=smtColorfib2,display = display.none,editable=false) 
+Fib3HTF = plot(ShowSmartTrailTF1 ?(ta.sma(f3HTF, Smoothing)):na, 'Ranger C',color=smtColorfib3,editable=false)
+fill(Fib1HTF, Fib3HTF, color = trailHTF > f3HTF ?  color.new(#303030, 75): color.new(#ffffff, 75),title = 'Backgroud TF 1',editable=false)
+fill(Fib3HTF, Fib2HTF, color = trailHTF > f3HTF ?  color.new(#303030, 80): color.new(#ffffff, 80),title = 'Backgroud TF 1',editable=false)
+
+
+
+//plot SMT HTF 2
+
+
+multiTF2 = input.timeframe('60','multi timeframe 2:', group="👉 SmartTrail Settings")
+[exHTF2,trailHTF2,TrendtradeHTF2] = request.security(ticker.new(syminfo.prefix, syminfo.ticker), multiTF2, CalculateSMT_MultiTF(multiTF2,getATRFactor(multiTF2)) ) 
+f2HTF2 = exHTF2 + (trailHTF2 - exHTF2) * fib2Level / 100
+f3HTF2 = exHTF2 + (trailHTF2 - exHTF2) * fib3Level / 100
+Fib1HTF2 = plot(ShowSmartTrailTF2 ?(ta.sma(trailHTF2, Smoothing)):na, 'S/R - SIGNAL', style=plot.style_line, color=TrendtradeHTF2 == 1 ? smtColorfib1_up : TrendtradeHTF2 == -1 ? smtColorfib1_down : na,linewidth = 1,editable = false)
+Fib2HTF2 = plot(ShowSmartTrailTF2 ?(ta.sma(f2HTF2, Smoothing)):na, 'Ranger B', color=smtColorfib2,display = display.none,editable=false) 
+Fib3HTF2 = plot(ShowSmartTrailTF2 ?(ta.sma(f3HTF2, Smoothing)):na, 'Ranger C',color=smtColorfib3,editable=false)
+fill(Fib1HTF2, Fib3HTF2, color = trailHTF2 > f3HTF2 ?  color.new(#303030, 70): color.new(#ffffff, 70),title = 'Backgroud TF 2',editable=false)
+fill(Fib3HTF2, Fib2HTF2, color = trailHTF2 > f3HTF2 ? color.new(#303030, 75): color.new(#ffffff, 75),title = 'Backgroud TF 2',editable=false)
