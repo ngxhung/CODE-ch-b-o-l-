@@ -1,0 +1,23 @@
+/// ichimoku add start
+ShowIchi = input.bool(false, 'ICHIMOKU ON/OFF', group = 'K2024')
+conversionPeriods = input.int(9, minval=1, title="Conversion Line Length", group = 'ichimoku')
+basePeriods = input.int(26, minval=1, title="Base Line Length", group = 'ichimoku')
+laggingSpan2Periods = input.int(52, minval=1, title="Leading Span B Length", group = 'ichimoku')
+displacement = input.int(26, minval=1, title="Lagging Span", group = 'ichimoku', group = 'ichimoku')
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+// plot(ShowIchi?conversionLine:na, color=#2962FF, title="Conversion Line", display = display.none)
+// plot(ShowIchi?baseLine:na,  color=#B71C1C, title="Base Line", display = display.none)
+//plot(ShowIchi?close:na, offset = -displacement + 1, color=#43A047, title="Lagging Span")
+i1 = plot(ShowIchi?leadLine1:na, offset = displacement - 1, color=#A5D6A7,
+	 title="Leading Span A")
+i2 = plot(ShowIchi?leadLine2:na, offset = displacement - 1, color=#EF9A9A,
+	 title="Leading Span B")
+plot(leadLine1 > leadLine2? leadLine1 : leadLine2, offset = displacement - 1, title = "Kumo Cloud Upper Line", display = display.none) 
+plot(leadLine1 < leadLine2 ? leadLine1 : leadLine2, offset = displacement - 1, title = "Kumo Cloud Lower Line", display = display.none) 
+fill(i1, i2, color = leadLine1 > leadLine2 ? color.rgb(67, 160, 72, 72) : color.rgb(202, 50, 39, 63))
+
+/// Ichimoku Add END 
