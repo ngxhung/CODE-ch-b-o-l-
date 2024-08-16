@@ -1,0 +1,33 @@
+len = input.int(75, "Lookback Length")
+plot_type = input.string("Area", "Plot Type", ["Area", "Candles"])
+z = (close - ta.sma(close, len)) / ta.stdev(close, len) 
+z_hi = (high - ta.sma(high, len)) / ta.stdev(high, len) 
+z_lo = (low - ta.sma(low, len)) / ta.stdev(low, len) 
+z_op = (open - ta.sma(open, len)) / ta.stdev(open, len) 
+
+float z_close = 0.0
+float z_open = 0.0 
+float z_high = 0.0 
+float z_low = 0.0 
+if plot_type == "Candles"
+    z_close := z 
+    z_high := z_hi
+    z_low :=z_lo
+    z_open := z_op 
+
+cl_sma = ta.sma(close, len) 
+cl_sd = ta.stdev(close, len) 
+neutral_price = (cl_sma) + (0 * cl_sd) 
+onesd_price = (cl_sma) + (1 * cl_sd) 
+twosd_price = (cl_sma) + (2 * cl_sd) 
+threesd_price = (cl_sma) + (3 * cl_sd) 
+neg_onesd_price = (cl_sma) + (-1 * cl_sd) 
+neg_twosd_price = (cl_sma) + (-2 * cl_sd) 
+neg_threesd_price = (cl_sma) + (-3 * cl_sd) 
+a = plot(reversalZone? neutral_price:na, color = #3b3b3b,linewidth = 2)  
+b = plot(reversalZone?onesd_price:na, color = #888888)  
+c = plot(reversalZone?twosd_price:na, color = #888888) 
+d = plot(reversalZone?threesd_price:na, color = #888888)  
+e = plot(reversalZone?neg_onesd_price:na, color = #888888)  
+f = plot(reversalZone?neg_twosd_price:na, color = #888888) 
+g = plot(reversalZone?neg_threesd_price:na, color = #888888) 
