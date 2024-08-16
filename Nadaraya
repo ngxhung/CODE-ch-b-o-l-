@@ -1,0 +1,210 @@
+NDR= input.bool(false,'NADARAYA',group = 'ON/OFF')
+//------------------------------------------------------------------------------
+//Settings
+//-----------------------------------------------------------------------------{
+h = input.float(8.,'Bandwidth', minval = 0)
+mult = input.float(3., minval = 0)
+src = input(close, 'Source')
+
+repaint = input(false, 'Repainting Smoothing', tooltip = 'Repainting is an effect where the indicators historical output is subject to change over time. Disabling repainting will cause the indicator to output the endpoints of the calculations')
+
+//Style
+upCss = input.color(color.new(#2a2e39,0), 'Colors', inline = 'inline1', group = 'Style')
+dnCss = input.color(color.new(#2a2e39,0), '', inline = 'inline1', group = 'Style')
+
+//-----------------------------------------------------------------------------}
+//Functions
+//-----------------------------------------------------------------------------{
+//Gaussian window
+gauss(x, h) => math.exp(-(math.pow(x, 2)/(h * h * 2)))
+
+//-----------------------------------------------------------------------------}
+//Append lines
+//-----------------------------------------------------------------------------{
+n = bar_index
+
+var ln = array.new_line(0) 
+
+if barstate.isfirst and repaint
+    for i = 0 to 499
+        array.push(ln,line.new(na,na,na,na))
+
+//-----------------------------------------------------------------------------}
+//End point method
+//-----------------------------------------------------------------------------{
+var coefs = array.new_float(0)
+var den = 0.
+
+if NDR? barstate.isfirst and not repaint:na
+    for i = 0 to 499
+        w = gauss(i, h)
+        coefs.push(w)
+
+    den := coefs.sum()
+
+out = 0.
+if not repaint
+    for i = 0 to 499
+        out += src[i] * coefs.get(i)
+out /= den
+mae = ta.sma(math.abs(src - out), 499) * mult
+
+upper = out + mae
+lower = out - mae
+ 
+//-----------------------------------------------------------------------------}
+//Compute and display NWE
+//-----------------------------------------------------------------------------{
+float y2 = na
+float y1 = na
+
+nwe = array.new<float>(0)
+if NDR? barstate.islast and repaint:na
+    sae = 0.
+    //Compute and set NWE point 
+    for i = 0 to math.min(499,n - 1)
+        sum = 0.
+        sumw = 0.
+        //Compute weighted mean 
+        for j = 0 to math.min(499,n - 1)
+            w = gauss(i - j, h)
+            sum += src[j] * w
+            sumw += w
+
+        y2 := sum / sumw
+        sae += math.abs(src[i] - y2)
+        nwe.push(y2)
+    
+    sae := sae / math.min(499,n - 1) * mult
+    for i = 0 to math.min(499,n - 1)
+        if i%2
+            line.new(n-i+1, y1 + sae, n-i, nwe.get(i) + sae, color = upCss)
+            line.new(n-i+1, y1 - sae, n-i, nwe.get(i) - sae, color = dnCss)
+        
+        if src[i] > nwe.get(i) + sae and src[i+1] < nwe.get(i) + sae
+            label.new(n-i, src[i], '▼', color = color(na), style = label.style_label_down, textcolor = dnCss, textalign = text.align_center)
+        if src[i] < nwe.get(i) - sae and src[i+1] > nwe.get(i) - sae
+            label.new(n-i, src[i], '▲', color = color(na), style = label.style_label_up, textcolor = upCss, textalign = text.align_center)
+        
+        y1 := nwe.get(i)
+
+//-----------------------------------------------------------------------------}
+
+//Plot
+//-----------------------------------------------------------------------------}
+A= plot(repaint ? na : out + mae, 'Upper',color = color.new(#000000,100))
+B = plot(repaint ? na : out - mae, 'Lower',color = color.new(#000000,100))
+
+//Crossing Arrows
+plotshape(ta.crossunder(close, out - mae) ? low : na, "Crossunder", shape.labelup, location.absolute, color(na), 0 , text = '▲', textcolor = upCss, size = size.tiny)
+plotshape(ta.crossover(close, out + mae) ? high : na, "Crossover", shape.labeldown, location.absolute, color(na), 0 , text = '▼', textcolor = dnCss, size = size.tiny)
+
+//-----------------------------------------------------------------------------}
+
+
+
+
+ //////////// 2 ///////////////////////////
+//-----------------------------------------------------------------------------}
+
+hi = input.float(8.,'Bandwidth', minval = 0)
+mult7 = input.float(4., minval = 0)
+source10 = input(close, 'Source')
+
+nadrepaint = input(false, 'nadrepainting Smoothing', tooltip = 'nadrepainting is an effect where the indicators historical nadoutput is subject to change over time. Disabling nadrepainting will cause the indicator to nadoutput the endpoints of the calculations')
+
+//Style
+nadupCss = input.color(color.new(#2a2e39,0), 'Colors', inline = 'inline1', group = 'Style')
+naddnCss = input.color(color.new(#2a2e39,0), '', inline = 'inline1', group = 'Style')
+
+//-----------------------------------------------------------------------------}
+//Functions
+//-----------------------------------------------------------------------------{
+
+
+//-----------------------------------------------------------------------------}
+//Append lines
+//-----------------------------------------------------------------------------{
+
+
+var nadline = array.new_line(0) 
+
+if NDR?barstate.isfirst and nadrepaint:na
+    for i = 0 to 499
+        array.push(nadline,line.new(na,na,na,na))
+
+//-----------------------------------------------------------------------------}
+//End point method
+//-----------------------------------------------------------------------------{
+var nadcoefs = array.new_float(0)
+var nadden = 0.
+
+if barstate.isfirst and not nadrepaint
+    for i = 0 to 499
+        w = gauss(i, hi)
+        nadcoefs.push(w)
+
+    nadden := nadcoefs.sum()
+
+nadout = 0.
+if not nadrepaint
+    for i = 0 to 499
+        nadout += source10[i] * nadcoefs.get(i)
+nadout /= nadden
+nadmae = ta.sma(math.abs(source10 - nadout), 499) * mult7
+
+nadupper = nadout + nadmae
+nadlower = nadout - nadmae
+ 
+//-----------------------------------------------------------------------------}
+//Compute and display nadnwe
+//-----------------------------------------------------------------------------{
+float nady2 = na
+float nady1 = na
+
+nadnwe = array.new<float>(0)
+if NDR?barstate.islast and nadrepaint:na
+    sae = 0.
+    //Compute and set nadnwe point 
+    for i = 0 to math.min(499,n - 1)
+        sum = 0.
+        sumw = 0.
+        //Compute weighted mean 
+        for j = 0 to math.min(499,n - 1)
+            w = gauss(i - j, hi)
+            sum += source10[j] * w
+            sumw += w
+
+        nady2 := sum / sumw
+        sae += math.abs(source10[i] - nady2)
+        nadnwe.push(nady2)
+    
+    sae := sae / math.min(499,n - 1) * mult7
+    for i = 0 to math.min(499,n - 1)
+        if i%2
+            line.new(n-i+1, nady1 + sae, n-i, nadnwe.get(i) + sae, color = nadupCss)
+            line.new(n-i+1, nady1 - sae, n-i, nadnwe.get(i) - sae, color = naddnCss)
+        
+        if source10[i] > nadnwe.get(i) + sae and source10[i+1] < nadnwe.get(i) + sae
+            label.new(n-i, source10[i], '▼', color = color(na), style = label.style_label_down, textcolor = naddnCss, textalign = text.align_center)
+        if source10[i] < nadnwe.get(i) - sae and source10[i+1] > nadnwe.get(i) - sae
+            label.new(n-i, source10[i], '▲', color = color(na), style = label.style_label_up, textcolor = nadupCss, textalign = text.align_center)
+        
+        nady1 := nadnwe.get(i)
+
+//-----------------------------------------------------------------------------}
+
+//Plot
+//-----------------------------------------------------------------------------}
+AA = plot(nadrepaint ? na : nadout + nadmae, 'naduper', nadupCss)
+BB = plot(nadrepaint ? na : nadout - nadmae, 'nadlower', naddnCss)
+
+//Crossing Arrows
+plotshape(ta.crossunder(close, nadout - nadmae) ? low : na, "Crossunder", shape.labelup, location.absolute, color(na), 0 , text = '▲', textcolor = nadupCss, size = size.tiny)
+plotshape(ta.crossover(close, nadout + nadmae) ? high : na, "Crossover", shape.labeldown, location.absolute, color(na), 0 , text = '▼', textcolor = naddnCss, size = size.tiny)
+
+//-----------------------------------------------------------------------------}
+
+
+fill(A, AA, color = #888888, transp = 60, editable = false)
+fill(B, BB, color = #888888, transp = 60, editable = false)
