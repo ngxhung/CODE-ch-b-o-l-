@@ -1,0 +1,36 @@
+//input
+showEma = input(title='Show Ema', group='EMA', defval=false,group = 'ON/OFF')
+
+emaLeght1 = input(title='EMA 1', group='EMA', defval=5)
+emaLeght2 = input(title='EMA 2', group='EMA', defval=10)
+emaLeght3 = input(title='EMA 3', group='EMA', defval=20)
+color20ema = input(title='Yellow color 20 ema', group='EMA', defval=false)
+emaLeght4 = input(title='EMA 4', group='EMA', defval=50)
+emaLeght5 = input(title='EMA 5', group='EMA', defval=100)
+emaLeght6 = input(title='EMA 5', group='EMA', defval=150)
+emaLeght7 = input(title='EMA 5', group='EMA', defval=200)
+
+//calc
+ema1 = ta.ema(close, emaLeght1)
+ema2 = ta.ema(close, emaLeght2)
+ema3 = ta.ema(close, emaLeght3)
+ema4 = ta.ema(close, emaLeght4)
+ema5 = ta.ema(close, emaLeght5)
+ema6 = ta.ema(close, emaLeght6)
+ema7 = ta.ema(close, emaLeght7)
+
+//plot
+plot1 = plot(showEma ? ema1 : na, color=color.white, transp=0, linewidth=1)
+plot2 = plot(showEma ? ema2 : na, color=ema2 < ema3 ? color.black : color.white, transp=30, linewidth=2)
+plot3 = plot(showEma ? ema3 : na, color=color20ema ? color.yellow : ema2 < ema3 ? color.black : color.white, transp=30, linewidth=2)
+plot4 = plot(showEma ? ema4 : na, color=color.gray, transp=100,linewidth=1)
+plot5 = plot(showEma ? ema5 : na, color=color.gray, transp=100, linewidth=1)
+plot6 = plot(showEma ? ema6 : na, color=color.gray, transp=100, linewidth=1)
+plot7 = plot(showEma ? ema7 : na, color=color.white,transp=100, linewidth=2)
+
+//fill
+fill(plot2, plot3, color=ema2 < ema3 ? color.black : color.white, transp=70)
+fill(plot2, plot4, color=ema2 < ema4 ? color.black : color.white, transp=80)
+fill(plot2, plot5, color=ema2 < ema5 ? color.black : color.white, transp=80)
+fill(plot2, plot6, color=ema2 < ema6 ? color.black : color.white, transp=80)
+fill(plot2, plot7, color=ema2 < ema7 ? color.black : color.white, transp=80)
