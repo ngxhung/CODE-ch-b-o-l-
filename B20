@@ -133,8 +133,8 @@ if close < min_sesc and isToday
     line.new(x1=bardaaw, y1=fibonacci_target2_down, x2=time, y2=fibonacci_target2_down, color=#858585, width=1, style=line.style_solid,xloc = xloc.bar_time)
     string tp2 = 'Tp2: ' + str.tostring(fibonacci_target2_down)
     string tp1 = 'Tp1: ' + str.tostring(fibonacci_target1_down)
-    label.new(x=bardaaw, y=fibonacci_target2_down, style=label.style_label_right,color=color.rgb(100,100,100,100), size=size.small,xloc = xloc.bar_time,text = tp2)
-    label.new(x=bardaaw, y=fibonacci_target1_down, style=label.style_label_right,color=color.rgb(100,100,100,100), size=size.small,xloc = xloc.bar_time,text = tp1)
+    label.new(x=bardaaw, y=fibonacci_target2_down, style=label.style_label_right,color=color.rgb(100,100,100,100), size=size.small,xloc = xloc.bar_time,text = tp2,textcolor = #a1a1a1)
+    label.new(x=bardaaw, y=fibonacci_target1_down, style=label.style_label_right,color=color.rgb(100,100,100,100), size=size.small,xloc = xloc.bar_time,text = tp1,textcolor = #a1a1a1)
     if close < fibonacci_target2_down 
         line.new(x1=bardaaw, y1=fibonacci_target2_down, x2=bardaaw, y2=fibonacci_target3_down, color=#a1a1a1, width=1, style=line.style_arrow_right,xloc = xloc.bar_time)
         line.new(x1=bardaaw, y1=fibonacci_target3_down, x2=time, y2=fibonacci_target3_down, color=#a1a1a1, width=1, style=line.style_solid,xloc = xloc.bar_time)
@@ -148,8 +148,8 @@ if close > max_sesc and isToday
     // if na(1)
     string tp2 = 'Tp2: ' + str.tostring(fibonacci_target2)
     string tp1 = 'Tp1: ' + str.tostring(fibonacci_target1)
-    label.new(x=bardaaw, y=fibonacci_target2, style=label.style_label_right,color=color.rgb(100,100,100,100), size=size.small,xloc = xloc.bar_time,text = tp2)
-    label.new(x=bardaaw, y=fibonacci_target1, style=label.style_label_right,color=color.rgb(100,100,100,100), size=size.small,xloc = xloc.bar_time,text = tp1)
+    label.new(x=bardaaw, y=fibonacci_target2, style=label.style_label_right,color=color.rgb(100,100,100,100), size=size.small,xloc = xloc.bar_time,text = tp2,textcolor = #a1a1a1)
+    label.new(x=bardaaw, y=fibonacci_target1, style=label.style_label_right,color=color.rgb(100,100,100,100), size=size.small,xloc = xloc.bar_time,text = tp1,textcolor = #a1a1a1)
     if close > fibonacci_target2
         line.new(x1=bardaaw, y1=fibonacci_target2, x2=bardaaw, y2=fibonacci_target3, color=#a1a1a1, width=1, style=line.style_arrow_right,xloc = xloc.bar_time)
         line.new(x1=bardaaw, y1=fibonacci_target3, x2=time, y2=fibonacci_target3, color=#a1a1a1, width=1, style=line.style_solid,xloc = xloc.bar_time)
